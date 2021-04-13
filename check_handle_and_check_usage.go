@@ -1,6 +1,7 @@
 package e4qa
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -15,7 +16,7 @@ func (_ Def) CheckHandleAndCheckUsage(
 	checkFunc CheckFuncObject,
 	handleFunc HandleFuncObject,
 ) qa.CheckFunc {
-	return func() {
+	return func() (ret []error) {
 
 		// check
 		packages.Visit(pkgs, func(pkg *packages.Package) bool {
@@ -111,12 +112,18 @@ func (_ Def) CheckHandleAndCheckUsage(
 									target := deferStmt.Call.Args[0]
 									targetExpr, ok := target.(*ast.UnaryExpr)
 									if !ok {
-										pt("expecting unary expression: %s\n", pkg.Fset.Position(target.Pos()).String())
+										ret = append(ret, fmt.Errorf(
+											"expecting unary expression: %s",
+											pkg.Fset.Position(target.Pos()).String(),
+										))
 										return false
 									}
 									errIdent, ok := targetExpr.X.(*ast.Ident)
 									if !ok {
-										pt("expecting error identifier: %s\n", pkg.Fset.Position(target.Pos()).String())
+										ret = append(ret, fmt.Errorf(
+											"expecting error identifier: %s",
+											pkg.Fset.Position(target.Pos()).String(),
+										))
 										return false
 									}
 									errObj := pkg.TypesInfo.Uses[errIdent]
@@ -127,8 +134,10 @@ func (_ Def) CheckHandleAndCheckUsage(
 										}
 										// must define inside signature
 										if !(defIdent.Pos() > signature.Results.Pos() && defIdent.End() < signature.Results.End()) {
-											pt("should pass error defined at %s\n",
-												pkg.Fset.Position(signature.Results.Pos()))
+											ret = append(ret, fmt.Errorf(
+												"should pass error defined at %s",
+												pkg.Fset.Position(signature.Results.Pos()),
+											))
 											return false
 										}
 										checkOK = true
@@ -153,15 +162,16 @@ func (_ Def) CheckHandleAndCheckUsage(
 				}
 			}
 
-			for bodyPos, checkPoses := range notHandled {
-				pt("not handled %s\n",
-					pkg.Fset.Position(bodyPos).String())
-				for _, pos := range checkPoses {
-					pt("\t%s\n", pkg.Fset.Position(pos).String())
-				}
+			for bodyPos := range notHandled {
+				ret = append(ret, fmt.Errorf(
+					"not handled %s",
+					pkg.Fset.Position(bodyPos).String(),
+				))
 			}
 
 			return true
 		}, nil)
+
+		return
 	}
 }

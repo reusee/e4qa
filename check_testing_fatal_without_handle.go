@@ -1,6 +1,7 @@
 package e4qa
 
 import (
+	"fmt"
 	"go/ast"
 
 	"github.com/reusee/qa"
@@ -13,7 +14,7 @@ func (_ Def) CehckTestingFatalWithoutHandle(
 	testingFatalFunc TestingFatalFuncObject,
 	handleFunc HandleFuncObject,
 ) qa.CheckFunc {
-	return func() {
+	return func() (ret []error) {
 
 		packages.Visit(pkgs, func(pkg *packages.Package) bool {
 
@@ -63,8 +64,10 @@ func (_ Def) CehckTestingFatalWithoutHandle(
 					}
 
 					if !inHandle {
-						pt("TestingFatal should be used inside Handle: %s\n",
-							pkg.Fset.Position(ident.Pos()).String())
+						ret = append(ret, fmt.Errorf(
+							"TestingFatal should be used inside Handle: %s",
+							pkg.Fset.Position(ident.Pos()).String(),
+						))
 					}
 
 				}
@@ -73,5 +76,6 @@ func (_ Def) CehckTestingFatalWithoutHandle(
 			return true
 		}, nil)
 
+		return
 	}
 }
