@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/reusee/dscope"
 	"github.com/reusee/e4qa"
 	"github.com/reusee/qa"
@@ -15,6 +18,12 @@ func main() {
 
 	var check qa.CheckFunc
 	scope.Assign(&check)
-	check()
+	errs := check()
+	if len(errs) > 0 {
+		for _, err := range errs {
+			fmt.Printf("%s\n", err.Error())
+		}
+		os.Exit(-1)
+	}
 
 }
