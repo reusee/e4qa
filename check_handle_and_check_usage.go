@@ -20,6 +20,9 @@ func (_ Def) CheckHandleAndCheckUsage(
 
 		// check
 		packages.Visit(pkgs, func(pkg *packages.Package) bool {
+			if pkg.Types == checkFunc.Pkg() {
+				return true
+			}
 
 			// get Check and Handle aliases
 			checkObjects := FindAlias(pkg, checkFunc.Object)
